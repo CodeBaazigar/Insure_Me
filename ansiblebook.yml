@@ -1,0 +1,53 @@
+---
+# ---------------- MASTER ----------------
+- name: Setup Jenkins on Master
+  hosts: localhost
+  become: yes
+  connection: local
+  tasks:
+    - name: Download Jenkins install script
+      get_url:
+        url: https://raw.githubusercontent.com/akshu20791/Deployment-script/main/jenkins.sh
+        dest: /tmp/jenkins.sh
+        mode: '0777'
+
+    - name: Run Jenkins install script
+      command: sh /tmp/jenkins.sh
+
+    - name: Start Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Giving Jenkins Docker access
+      shell: |
+        sudo usermod -aG docker jenkins
+        service jenkins restart
+
+
+#--------------------On Nodes------------
+- name: Common setup (Docker + dependencies)
+  hosts:
+    - 172.31.35.89  # Worker1
+  become: yes
+  tasks:
+    - name: inbuilt update packages
+      shell: sudo apt update
+    - name: Install dependencies
+      apt:
+        name: [curl, wget, apt-transport-https, ca-certificates, software-properties-common]
+        state: present
+        update_cache: yes
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      ignore_errors: yes
+
+    - name: Enable and start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
